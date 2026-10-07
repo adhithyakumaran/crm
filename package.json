@@ -9,7 +9,10 @@
     "start": "next start -p 43123",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "leads:ingest-chennai": "tsx scripts/ingest-chennai-research.ts",
+    "leads:export-xlsx": "tsx scripts/export-import-xlsx.ts",
+    "leads:import-xlsx": "tsx scripts/import-xlsx-to-crm.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

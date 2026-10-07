@@ -35,6 +35,13 @@ npm run dev
 
 Open `http://localhost:43123` — **no login** (single-owner CRM; first API call creates the default user).
 
+### Chennai lead pack (import-ready)
+
+- **Excel:** `exports/chennai-qualified-leads.xlsx` — column headers match **Import** (`businessName`, `phone`, `leadScore`, etc.). Upload in **Import → Validate & import** (auto-maps camelCase columns).
+- **Refresh from research:** `npx tsx scripts/ingest-chennai-research.ts`
+- **Re-export after DB changes:** `npx tsx scripts/export-import-xlsx.ts`
+- **CLI import (same upsert as UI):** `npx tsx scripts/import-xlsx-to-crm.ts`
+
 ### Deploy on Vercel
 
 1. Create a **Postgres** database (Vercel Postgres, Neon, or Supabase).
