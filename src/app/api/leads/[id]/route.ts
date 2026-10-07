@@ -42,6 +42,7 @@ const patchSchema = z.object({
   suggestedPitch: z.string().optional(),
   opportunityType: z.string().optional(),
   archived: z.boolean().optional(),
+  evidence: z.array(z.object({ url: z.string().url(), label: z.string().optional() })).optional(),
   contact: z
     .object({
       name: z.string().optional(),
@@ -107,6 +108,11 @@ export async function PATCH(request: Request, { params }: Params) {
   if (parsed.data.opportunityType) {
     data.opportunityType = parsed.data.opportunityType as OpportunityType;
     userFields.push("opportunityType");
+  }
+
+  if (parsed.data.evidence) {
+    data.evidence = parsed.data.evidence;
+    userFields.push("evidence");
   }
 
   let activityTitle: string | null = null;

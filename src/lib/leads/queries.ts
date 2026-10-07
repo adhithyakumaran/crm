@@ -1,4 +1,4 @@
-import type { LeadStatus, Prisma } from "@prisma/client";
+import type { LeadSourceType, LeadStatus, Prisma } from "@prisma/client";
 import { startOfDay, endOfDay } from "date-fns";
 
 export type LeadListFilters = {
@@ -88,6 +88,22 @@ export function buildLeadWhere(
 
   if (filters.tag) {
     where.tagRelations = { some: { tag: { name: filters.tag } } };
+  }
+
+  if (filters.source) {
+    where.sources = { some: { type: filters.source as LeadSourceType } };
+  }
+
+  if (filters.websiteStatus) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      {
+        digitalPresence: {
+          path: ["websiteStatus"],
+          string_contains: filters.websiteStatus,
+        },
+      },
+    ];
   }
 
   const now = new Date();

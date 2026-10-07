@@ -16,7 +16,12 @@ function parseFilters(searchParams: URLSearchParams): LeadListFilters {
       : searchParams.get("highOpportunity") === "1"
         ? 75
         : undefined,
+    maxScore: searchParams.get("maxScore")
+      ? Number(searchParams.get("maxScore"))
+      : undefined,
     industry: searchParams.get("industry") ?? undefined,
+    source: searchParams.get("source") ?? undefined,
+    websiteStatus: searchParams.get("websiteStatus") ?? undefined,
     city: searchParams.get("city") ?? undefined,
     state: searchParams.get("state") ?? undefined,
     followUp: (searchParams.get("followUp") as LeadListFilters["followUp"]) ?? undefined,
@@ -25,6 +30,7 @@ function parseFilters(searchParams: URLSearchParams): LeadListFilters {
     hasEmail: searchParams.get("hasEmail") === "1",
     hasPhone: searchParams.get("hasPhone") === "1",
     hasWebsite: searchParams.get("hasWebsite") === "1",
+    hasWhatsApp: searchParams.get("hasWhatsApp") === "1",
     tag: searchParams.get("tag") ?? undefined,
     archived: searchParams.get("archived") === "1",
   };

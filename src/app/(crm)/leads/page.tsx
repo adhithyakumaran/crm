@@ -3,7 +3,6 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { format } from "date-fns";
 import { Download, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,45 +15,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { LeadScoreBadge } from "@/components/lead-score-badge";
-import { StatusBadge } from "@/components/status-badge";
+import { ColumnPicker } from "@/components/leads/column-picker";
+import { FilterPanel } from "@/components/leads/filter-panel";
+import { LeadTableRow, type LeadRowData } from "@/components/leads/lead-table-row";
+import { LEAD_COLUMNS, loadVisibleColumns, type LeadColumnId } from "@/lib/leads/columns";
 import type { LeadStatus } from "@prisma/client";
-
-type LeadRow = {
-  id: string;
-  businessName: string;
-  industry: string | null;
-  city: string | null;
-  location: string | null;
-  website: string | null;
-  status: LeadStatus;
-  leadScore: number;
-  lastContactedAt: string | null;
-  nextFollowUpAt: string | null;
-  createdAt: string;
-  contacts: { name: string | null; phone: string | null; email: string | null }[];
-  sources: { type: string }[];
-};
-
-const DEFAULT_COLUMNS = [
-  "score",
-  "business",
-  "industry",
-  "location",
-  "contact",
-  "phone",
-  "email",
-  "status",
-  "followUp",
-  "source",
-] as const;
 
 function LeadsPage() {
   const params = useSearchParams();
-  const [leads, setLeads] = useState<LeadRow[]>([]);
+  const [leads, setLeads] = useState<LeadRowData[]>([]);
   const [q, setQ] = useState(params.get("q") ?? "");
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [visibleCols, setVisibleCols] = useState<LeadColumnId[]>(loadVisibleColumns);
 
   const queryString = useMemo(() => {
     const p = new URLSearchParams(params.toString());
@@ -77,6 +50,7 @@ function LeadsPage() {
   }, [load]);
 
   const allSelected = leads.length > 0 && selected.length === leads.length;
+  const colSpan = visibleCols.length + 1;
 
   function toggleAll() {
     setSelected(allSelected ? [] : leads.map((l) => l.id));
@@ -108,7 +82,9 @@ function LeadsPage() {
             Review, contact, and track freelance opportunities
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <FilterPanel />
+          <ColumnPicker visible={visibleCols} onChange={setVisibleCols} />
           <Button variant="outline" onClick={exportSelected}>
             <Download className="size-4" />
             Export
@@ -147,76 +123,40 @@ function LeadsPage() {
               <TableHead className="w-10">
                 <Checkbox checked={allSelected} onCheckedChange={toggleAll} />
               </TableHead>
-              {DEFAULT_COLUMNS.map((c) => (
-                <TableHead key={c} className="capitalize">{c}</TableHead>
-              ))}
+              {visibleCols.map((id) => {
+                const col = LEAD_COLUMNS.find((c) => c.id === id);
+                return <TableHead key={id}>{col?.label ?? id}</TableHead>;
+              })}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-muted-foreground">
+                <TableCell colSpan={colSpan} className="text-muted-foreground">
                   Loading leads…
                 </TableCell>
               </TableRow>
             ) : leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-muted-foreground">
+                <TableCell colSpan={colSpan} className="text-muted-foreground">
                   No leads match your filters.{" "}
                   <Link href="/import" className="underline">Import a CSV</Link>.
                 </TableCell>
               </TableRow>
             ) : (
-              leads.map((lead) => {
-                const contact = lead.contacts[0];
-                const checked = selected.includes(lead.id);
-                return (
-                  <TableRow key={lead.id} data-state={checked ? "selected" : undefined}>
-                    <TableCell>
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(v) =>
-                          setSelected((s) =>
-                            v ? [...s, lead.id] : s.filter((id) => id !== lead.id)
-                          )
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <LeadScoreBadge score={lead.leadScore} />
-                    </TableCell>
-                    <TableCell className="max-w-[180px] truncate font-medium">
-                      <Link href={`/leads/${lead.id}`} className="hover:underline">
-                        {lead.businessName}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="max-w-[120px] truncate text-muted-foreground">
-                      {lead.industry ?? "—"}
-                    </TableCell>
-                    <TableCell className="max-w-[120px] truncate">
-                      {lead.city ?? lead.location ?? "—"}
-                    </TableCell>
-                    <TableCell className="max-w-[100px] truncate">
-                      {contact?.name ?? "—"}
-                    </TableCell>
-                    <TableCell className="max-w-[110px] truncate text-xs">
-                      {contact?.phone ?? "—"}
-                    </TableCell>
-                    <TableCell className="max-w-[140px] truncate text-xs">
-                      {contact?.email ?? "—"}
-                    </TableCell>
-                    <TableCell><StatusBadge status={lead.status} /></TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {lead.nextFollowUpAt
-                        ? format(new Date(lead.nextFollowUpAt), "d MMM")
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {lead.sources[0]?.type ?? "—"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+              leads.map((lead) => (
+                <LeadTableRow
+                  key={lead.id}
+                  lead={lead}
+                  visible={visibleCols}
+                  checked={selected.includes(lead.id)}
+                  onCheckedChange={(v) =>
+                    setSelected((s) =>
+                      v ? [...s, lead.id] : s.filter((id) => id !== lead.id)
+                    )
+                  }
+                />
+              ))
             )}
           </TableBody>
         </Table>

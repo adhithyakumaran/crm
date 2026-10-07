@@ -2,6 +2,8 @@
 
 Personal web CRM for discovering, qualifying, and following up with freelance website/app development leads.
 
+**Repository:** https://github.com/adhithyakumaran/crm
+
 **Stack:** Next.js 15, PostgreSQL, Prisma, Tailwind, shadcn/ui.
 
 ## Features (MVP)

@@ -36,7 +36,11 @@ import { StatusBadge } from "@/components/status-badge";
 import { STATUS_LABELS, PIPELINE_STATUSES } from "@/lib/constants";
 import { whatsAppUrl } from "@/lib/leads/normalize";
 import type { ContactChannel, LeadStatus } from "@prisma/client";
+import { FieldProvenance } from "@/components/leads/field-provenance";
+import { parseFieldMeta, type FieldMetaMap } from "@/lib/leads/field-meta";
 import { toast } from "sonner";
+
+type EvidenceItem = { url: string; label?: string };
 
 type LeadDetail = {
   id: string;
@@ -58,6 +62,8 @@ type LeadDetail = {
   followUpNote: string | null;
   digitalPresence: Record<string, string> | null;
   social: Record<string, string> | null;
+  evidence: EvidenceItem[] | null;
+  fieldMeta: FieldMetaMap | null;
   contacts: {
     name: string | null;
     role: string | null;
@@ -81,15 +87,55 @@ export default function LeadDetailPage() {
   } | null>(null);
   const [contactNotes, setContactNotes] = useState("");
   const [markContacted, setMarkContacted] = useState(true);
+  const [scoreInput, setScoreInput] = useState("");
+  const [scoreReasonInput, setScoreReasonInput] = useState("");
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [evidenceLabel, setEvidenceLabel] = useState("");
 
   const load = () => {
     if (!id) return;
     fetch(`/api/leads/${id}`)
       .then((r) => r.json())
-      .then((d) => setLead(d.lead));
+      .then((d) => {
+        setLead(d.lead);
+        if (d.lead) {
+          setScoreInput(String(d.lead.leadScore ?? 0));
+          setScoreReasonInput(d.lead.scoreReason ?? "");
+        }
+      });
   };
 
   useEffect(load, [id]);
+
+  async function saveScore() {
+    const leadScore = Number(scoreInput);
+    if (Number.isNaN(leadScore) || leadScore < 0 || leadScore > 100) {
+      toast.error("Score must be between 0 and 100");
+      return;
+    }
+    await fetch(`/api/leads/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leadScore, scoreReason: scoreReasonInput }),
+    });
+    load();
+    toast.success("Lead score updated");
+  }
+
+  async function addEvidence() {
+    if (!evidenceUrl.trim()) return;
+    const list = [...(lead?.evidence ?? [])];
+    list.push({ url: evidenceUrl.trim(), label: evidenceLabel.trim() || undefined });
+    await fetch(`/api/leads/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ evidence: list }),
+    });
+    setEvidenceUrl("");
+    setEvidenceLabel("");
+    load();
+    toast.success("Evidence added");
+  }
 
   async function saveStatus(status: LeadStatus) {
     await fetch(`/api/leads/${id}`, {
@@ -255,9 +301,26 @@ export default function LeadDetailPage() {
               <p className="font-medium">Pitch angle</p>
               <p className="text-muted-foreground">{lead.suggestedPitch ?? "—"}</p>
             </div>
-            {lead.scoreReason && (
-              <p className="text-xs text-muted-foreground">Score: {lead.scoreReason}</p>
-            )}
+            <div className="space-y-2 border-t pt-3">
+              <Label>Lead score (editable)</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={scoreInput}
+                  onChange={(e) => setScoreInput(e.target.value)}
+                  className="w-24"
+                />
+                <Button size="sm" variant="secondary" onClick={saveScore}>Save</Button>
+              </div>
+              <Textarea
+                placeholder="Reason for score"
+                value={scoreReasonInput}
+                onChange={(e) => setScoreReasonInput(e.target.value)}
+                rows={2}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -291,6 +354,47 @@ export default function LeadDetailPage() {
                 </p>
               )}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {(lead.digitalPresence && Object.keys(lead.digitalPresence).length > 0) && (
+        <Card>
+          <CardHeader><CardTitle>Digital presence</CardTitle></CardHeader>
+          <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
+            {Object.entries(lead.digitalPresence).map(([k, v]) => (
+              <p key={k}>
+                <span className="text-muted-foreground capitalize">{k.replace(/_/g, " ")}:</span>{" "}
+                {v}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader><CardTitle>Evidence</CardTitle></CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <ul className="space-y-1">
+              {(lead.evidence ?? []).map((e, i) => (
+                <li key={i}>
+                  <a href={e.url} target="_blank" rel="noreferrer" className="underline">
+                    {e.label ?? e.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <Input placeholder="https://…" value={evidenceUrl} onChange={(ev) => setEvidenceUrl(ev.target.value)} />
+            <Input placeholder="Label (optional)" value={evidenceLabel} onChange={(ev) => setEvidenceLabel(ev.target.value)} />
+            <Button size="sm" onClick={addEvidence}>Add link</Button>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader><CardTitle>Data provenance</CardTitle></CardHeader>
+          <CardContent>
+            <FieldProvenance meta={parseFieldMeta(lead.fieldMeta)} />
           </CardContent>
         </Card>
       </div>

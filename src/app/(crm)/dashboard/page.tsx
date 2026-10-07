@@ -3,6 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { STATUS_LABELS } from "@/lib/constants";
@@ -53,6 +62,11 @@ export default function DashboardPage() {
     ["Lost", data.kpis.lost],
   ];
 
+  const chartData = data.pipeline.map((step) => ({
+    name: STATUS_LABELS[step.status],
+    count: step.count,
+  }));
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -85,23 +99,18 @@ export default function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Lead pipeline</CardTitle>
+            <CardTitle>Pipeline volume</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {data.pipeline.map((step) => (
-              <div key={step.status} className="flex items-center gap-3">
-                <div className="w-28 text-xs font-medium">{STATUS_LABELS[step.status]}</div>
-                <div className="h-2 flex-1 rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-primary"
-                    style={{
-                      width: `${Math.min(100, (step.count / Math.max(data.kpis.total, 1)) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <span className="w-8 text-right text-sm tabular-nums">{step.count}</span>
-              </div>
-            ))}
+          <CardContent className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="count" fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
