@@ -7,8 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { LeadScoreBadge } from "@/components/lead-score-badge";
 import { StatusBadge } from "@/components/status-badge";
 import type { LeadColumnId } from "@/lib/leads/columns";
-import type { BuyingIntent, LeadIntelCategory, LeadStatus } from "@prisma/client";
-import { LeadIntelPreview } from "@/components/leads/lead-intel-preview";
+import type { LeadStatus } from "@prisma/client";
 
 export type LeadRowData = {
   id: string;
@@ -22,14 +21,6 @@ export type LeadRowData = {
   lastContactedAt: string | null;
   nextFollowUpAt: string | null;
   createdAt: string;
-  leadIntelCategory?: LeadIntelCategory | null;
-  intentScore?: number;
-  detectedProblem?: string | null;
-  requirementSummary?: string | null;
-  solutionNeeded?: string | null;
-  businessOpportunity?: string | null;
-  postedAt?: string | null;
-  buyingIntent?: BuyingIntent | null;
   contacts: { name: string | null; phone: string | null; email: string | null }[];
   sources: { type: string }[];
 };
@@ -50,20 +41,9 @@ export function LeadTableRow({ lead, visible, checked, onCheckedChange }: Props)
         return <LeadScoreBadge score={lead.leadScore} />;
       case "business":
         return (
-          <div>
-            <Link href={`/leads/${lead.id}`} className="hover:underline font-medium">
-              {lead.businessName}
-            </Link>
-            <LeadIntelPreview
-              leadIntelCategory={lead.leadIntelCategory}
-              intentScore={lead.intentScore}
-              detectedProblem={lead.detectedProblem}
-              requirementSummary={lead.requirementSummary}
-              solutionNeeded={lead.solutionNeeded}
-              businessOpportunity={lead.businessOpportunity}
-              postedAt={lead.postedAt}
-            />
-          </div>
+          <Link href={`/leads/${lead.id}`} className="hover:underline font-medium">
+            {lead.businessName}
+          </Link>
         );
       case "industry":
         return lead.industry ?? "—";

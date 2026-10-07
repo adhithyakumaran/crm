@@ -21,20 +21,6 @@ type DashboardData = {
   kpis: Record<string, number>;
   followUps: { today: number; overdue: number; upcoming: number };
   pipeline: { status: LeadStatus; count: number }[];
-  intelligence?: {
-    activeDemand: number;
-    businessOpportunity: number;
-    postedLast7: number;
-    hottestDemand: Array<{
-      id: string;
-      businessName: string;
-      intentScore: number;
-      leadScore: number;
-      requirementSummary: string | null;
-      postedAt: string | null;
-      phone: string | null;
-    }>;
-  };
 };
 
 const quickFilters = [
@@ -48,8 +34,6 @@ const quickFilters = [
   { label: "Tamil Nadu", href: "/leads?state=Tamil Nadu" },
   { label: "Website opportunity", href: "/leads?tag=WEBSITE" },
   { label: "App opportunity", href: "/leads?tag=WEB_APP" },
-  { label: "Active demand", href: "/leads?leadIntelCategory=ACTIVE_DEMAND" },
-  { label: "Posted last 7 days", href: "/leads?postedWithinDays=7" },
 ];
 
 export default function DashboardPage() {
@@ -65,13 +49,8 @@ export default function DashboardPage() {
     return <p className="text-sm text-muted-foreground">Loading dashboard…</p>;
   }
 
-  const intel = data.intelligence;
-
   const kpiCards = [
     ["Total leads", data.kpis.total],
-    ["🔥 Active demand", intel?.activeDemand ?? 0],
-    ["🔥 Posted last 7 days", intel?.postedLast7 ?? 0],
-    ["🟢 Business opportunities", intel?.businessOpportunity ?? 0],
     ["New", data.kpis.new],
     ["To contact", data.kpis.toContact],
     ["Contacted", data.kpis.contacted],
@@ -155,30 +134,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      {intel?.hottestDemand?.length ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Hottest new demand</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {intel.hottestDemand.map((h) => (
-              <div key={h.id} className="border-b pb-2 last:border-0">
-                <Link href={`/leads/${h.id}`} className="font-medium hover:underline">
-                  {h.businessName}
-                </Link>
-                <p className="text-muted-foreground line-clamp-2">
-                  {h.requirementSummary ?? "Explicit development requirement"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Intent {h.intentScore} · Score {h.leadScore}
-                  {h.phone ? ` · ${h.phone}` : ""}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
 
       <Card>
         <CardHeader>

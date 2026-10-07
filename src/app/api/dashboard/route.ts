@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { endOfDay, startOfDay, subDays } from "date-fns";
+import { endOfDay, startOfDay } from "date-fns";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/api/guard";
 import { PIPELINE_STATUSES } from "@/lib/constants";
@@ -10,19 +10,8 @@ export async function GET(request: Request) {
   const userId = auth.userId;
   const now = new Date();
 
-  const sevenDaysAgo = subDays(now, 7);
-
-  const [
-    total,
-    statusGroups,
-    followToday,
-    followOverdue,
-    followUpcoming,
-    activeDemand,
-    businessOpportunity,
-    postedLast7,
-    hottestDemand,
-  ] = await Promise.all([
+  const [total, statusGroups, followToday, followOverdue, followUpcoming] =
+    await Promise.all([
       prisma.lead.count({ where: { userId, archived: false } }),
       prisma.lead.groupBy({
         by: ["status"],
@@ -50,37 +39,6 @@ export async function GET(request: Request) {
           nextFollowUpAt: { gt: endOfDay(now) },
         },
       }),
-      prisma.lead.count({
-        where: {
-          userId,
-          archived: false,
-          leadIntelCategory: { in: ["ACTIVE_DEMAND", "BOTH"] },
-        },
-      }),
-      prisma.lead.count({
-        where: {
-          userId,
-          archived: false,
-          leadIntelCategory: "BUSINESS_OPPORTUNITY",
-        },
-      }),
-      prisma.lead.count({
-        where: {
-          userId,
-          archived: false,
-          postedAt: { gte: sevenDaysAgo },
-        },
-      }),
-      prisma.lead.findMany({
-        where: {
-          userId,
-          archived: false,
-          leadIntelCategory: { in: ["ACTIVE_DEMAND", "BOTH"] },
-        },
-        orderBy: [{ intentScore: "desc" }, { postedAt: "desc" }],
-        take: 8,
-        include: { contacts: { where: { isPrimary: true }, take: 1 } },
-      }),
     ]);
 
   const byStatus = Object.fromEntries(
@@ -106,20 +64,6 @@ export async function GET(request: Request) {
       lost: byStatus.LOST ?? 0,
     },
     followUps: { today: followToday, overdue: followOverdue, upcoming: followUpcoming },
-    intelligence: {
-      activeDemand,
-      businessOpportunity,
-      postedLast7,
-      hottestDemand: hottestDemand.map((l) => ({
-        id: l.id,
-        businessName: l.businessName,
-        intentScore: l.intentScore,
-        leadScore: l.leadScore,
-        requirementSummary: l.requirementSummary,
-        postedAt: l.postedAt,
-        phone: l.contacts[0]?.phone,
-      })),
-    },
     pipeline,
   });
 }

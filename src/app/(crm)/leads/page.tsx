@@ -32,7 +32,7 @@ function LeadsPage() {
   const queryString = useMemo(() => {
     const p = new URLSearchParams(params.toString());
     if (q) p.set("q", q);
-    p.set("sort", "intent");
+    p.set("sort", "leadScore");
     p.set("order", "desc");
     return p.toString();
   }, [params, q]);

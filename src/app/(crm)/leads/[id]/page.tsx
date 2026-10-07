@@ -39,13 +39,6 @@ import type { ContactChannel, LeadStatus } from "@prisma/client";
 import { FieldProvenance } from "@/components/leads/field-provenance";
 import { parseFieldMeta, type FieldMetaMap } from "@/lib/leads/field-meta";
 import { toast } from "sonner";
-import {
-  daysSincePosted,
-  intelCategoryLabel,
-  intentTier,
-  intentTierLabel,
-} from "@/lib/leads/intelligence";
-import type { BuyingIntent, LeadIntelCategory, ProjectType } from "@prisma/client";
 
 type EvidenceItem = { url: string; label?: string };
 
@@ -63,24 +56,8 @@ type LeadDetail = {
   leadScore: number;
   scoreReason: string | null;
   detectedProblem: string | null;
-  solutionNeeded: string | null;
-  suggestedSolution: string | null;
   suggestedService: string | null;
   suggestedPitch: string | null;
-  businessOpportunity: string | null;
-  whyThisLead: string | null;
-  opportunityType: string | null;
-  leadIntelCategory: LeadIntelCategory | null;
-  buyingIntent: BuyingIntent | null;
-  intentScore: number;
-  projectType: ProjectType | null;
-  postedAt: string | null;
-  postUrl: string | null;
-  postPlatform: string | null;
-  postAuthor: string | null;
-  postAuthorRole: string | null;
-  postTextSummary: string | null;
-  requirementSummary: string | null;
   nextFollowUpAt: string | null;
   followUpNote: string | null;
   digitalPresence: Record<string, string> | null;
@@ -236,25 +213,9 @@ export default function LeadDetailPage() {
             {[lead.city, lead.state].filter(Boolean).join(", ") || "Location unknown"}
           </p>
         </div>
-        <div className="text-right text-sm">
-          <LeadScoreBadge score={lead.leadScore} />
-          {lead.intentScore > 0 && (
-            <p className="mt-1 text-muted-foreground">
-              Intent {lead.intentScore} · {intentTierLabel(intentTier(lead.intentScore))}
-            </p>
-          )}
-        </div>
+        <LeadScoreBadge score={lead.leadScore} />
         <StatusBadge status={lead.status} />
       </div>
-
-      {lead.whyThisLead && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Why contact this lead?</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm">{lead.whyThisLead}</CardContent>
-        </Card>
-      )}
 
       <div className="flex flex-wrap gap-2">
         {contact?.phone && (
@@ -326,56 +287,18 @@ export default function LeadDetailPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Buying intent</CardTitle></CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p className="font-medium">{intelCategoryLabel(lead.leadIntelCategory)}</p>
-            <p>
-              <span className="text-muted-foreground">Intent score:</span> {lead.intentScore}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Buying intent:</span>{" "}
-              {lead.buyingIntent ?? "UNKNOWN"}
-            </p>
-            {lead.postedAt && (
-              <p>
-                <span className="text-muted-foreground">Posted:</span>{" "}
-                {format(new Date(lead.postedAt), "d MMM yyyy")}
-                {daysSincePosted(lead.postedAt) != null &&
-                  ` (${daysSincePosted(lead.postedAt)} days ago)`}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
           <CardHeader><CardTitle>Opportunity</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div>
-              <p className="font-medium">What they need</p>
-              <p className="text-muted-foreground">
-                {lead.solutionNeeded ?? lead.suggestedSolution ?? "—"}
-              </p>
-            </div>
             <div>
               <p className="font-medium">Detected problem</p>
               <p className="text-muted-foreground">{lead.detectedProblem ?? "—"}</p>
             </div>
             <div>
-              <p className="font-medium">Business opportunity</p>
-              <p className="text-muted-foreground">
-                {lead.businessOpportunity ?? lead.suggestedService ?? "—"}
-              </p>
+              <p className="font-medium">Suggested service</p>
+              <p className="text-muted-foreground">{lead.suggestedService ?? "—"}</p>
             </div>
             <div>
-              <p className="font-medium">Opportunity type</p>
-              <p className="text-muted-foreground">{lead.opportunityType ?? "—"}</p>
-            </div>
-            <div>
-              <p className="font-medium">Project type</p>
-              <p className="text-muted-foreground">{lead.projectType ?? "UNKNOWN"}</p>
-            </div>
-            <div>
-              <p className="font-medium">Suggested pitch</p>
+              <p className="font-medium">Pitch angle</p>
               <p className="text-muted-foreground">{lead.suggestedPitch ?? "—"}</p>
             </div>
             <div className="space-y-2 border-t pt-3">
