@@ -1,0 +1,311 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum LeadStatus {
+  NEW
+  REVIEWED
+  CONTACTED
+  RESPONDED
+  MEETING
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+  NOT_INTERESTED
+  FOLLOW_UP
+}
+
+enum LeadSourceType {
+  GOOGLE_MAPS
+  LINKEDIN
+  INSTAGRAM
+  WEBSITE
+  DIRECTORY
+  MANUAL
+  CSV_IMPORT
+  API
+  OTHER
+}
+
+enum OpportunityType {
+  WEBSITE
+  REDESIGN
+  WEB_APP
+  MOBILE_APP
+  AUTOMATION
+  ECOMMERCE
+  OTHER
+}
+
+enum ContactChannel {
+  PHONE
+  WHATSAPP
+  EMAIL
+  LINKEDIN
+  INSTAGRAM
+  WEBSITE
+  GOOGLE_MAPS
+  OTHER
+}
+
+enum FieldSource {
+  SCRAPER
+  CSV
+  MANUAL
+  USER
+  API
+}
+
+enum ActivityType {
+  IMPORTED
+  REVIEWED
+  STATUS_CHANGED
+  CONTACT_INITIATED
+  CONTACT_RECORDED
+  FOLLOW_UP_SCHEDULED
+  FOLLOW_UP_COMPLETED
+  NOTE_ADDED
+  FIELD_UPDATED
+  TAG_ADDED
+  TAG_REMOVED
+  ARCHIVED
+  DELETED
+  EXPORTED
+}
+
+enum ImportStatus {
+  PENDING
+  PREVIEW
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  leads    Lead[]
+  imports  Import[]
+  apiKeys  ApiKey[]
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String   @default("default")
+  keyHash   String   @unique
+  createdAt DateTime @default(now())
+  lastUsed  DateTime?
+}
+
+model Lead {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  businessName String
+  category     String?
+  industry     String?
+  description  String? @db.Text
+
+  city      String?
+  state     String?
+  country   String? @default("India")
+  address   String? @db.Text
+  location  String?
+
+  googleMapsUrl String?
+  website       String?
+  websiteDomain String?
+  businessSize  String?
+
+  status LeadStatus @default(NEW)
+
+  leadScore    Int     @default(0)
+  scoreReason  String? @db.Text
+  isHot        Boolean @default(false)
+  archived     Boolean @default(false)
+
+  detectedProblem   String? @db.Text
+  suggestedSolution String? @db.Text
+  suggestedService  String? @db.Text
+  suggestedPitch    String? @db.Text
+  opportunityType   OpportunityType?
+  businessValue     String?
+
+  digitalPresence Json?
+  social          Json?
+  evidence        Json?
+  fieldMeta       Json?
+
+  normalizedPhone String?
+  normalizedEmail String?
+  matchKey        String?
+
+  lastContactedAt   DateTime?
+  lastContactMethod ContactChannel?
+  nextFollowUpAt    DateTime?
+  followUpNote      String? @db.Text
+  followUpCount     Int     @default(0)
+
+  contacts      Contact[]
+  sources       LeadSource[]
+  tagRelations  LeadTagRelation[]
+  activities    Activity[]
+  followUps     FollowUp[]
+  notes         Note[]
+  importRecords ImportRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, leadScore])
+  @@index([userId, nextFollowUpAt])
+  @@index([userId, websiteDomain])
+  @@index([userId, normalizedPhone])
+  @@index([userId, normalizedEmail])
+  @@index([userId, businessName, city])
+  @@index([userId, archived])
+}
+
+model Contact {
+  id     String @id @default(cuid())
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  name     String?
+  role     String?
+  phone    String?
+  whatsApp String?
+  email    String?
+  linkedIn String?
+  isPrimary Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leadId])
+}
+
+model LeadSource {
+  id     String @id @default(cuid())
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  type      LeadSourceType
+  sourceUrl String?
+  label     String?
+
+  createdAt DateTime @default(now())
+}
+
+model LeadTag {
+  id     String @id @default(cuid())
+  userId String
+  name   String
+
+  relations LeadTagRelation[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, name])
+}
+
+model LeadTagRelation {
+  leadId String
+  tagId  String
+  lead   Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tag    LeadTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([leadId, tagId])
+}
+
+model Activity {
+  id     String @id @default(cuid())
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  type        ActivityType
+  title       String
+  description String? @db.Text
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+model FollowUp {
+  id     String @id @default(cuid())
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  dueAt    DateTime
+  note     String? @db.Text
+  completed Boolean @default(false)
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId, dueAt])
+}
+
+model Note {
+  id     String @id @default(cuid())
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  body String @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+model Import {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  filename   String
+  format     String
+  status     ImportStatus @default(PENDING)
+  columnMap  Json?
+  summary    Json?
+  error      String? @db.Text
+
+  records ImportRecord[]
+
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+}
+
+model ImportRecord {
+  id       String @id @default(cuid())
+  importId String
+  import   Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  rowIndex   Int
+  action     String
+  matchReason String?
+  raw        Json?
+  errors     Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([importId])
+}
