@@ -33,12 +33,15 @@ npm run db:seed
 npm run dev
 ```
 
-Open `http://localhost:43123` and sign in with:
+Open `http://localhost:43123` — **no login** (single-owner CRM; first API call creates the default user).
 
-- Email: `you@example.com`
-- Password: `changeme123`
+### Deploy on Vercel
 
-Change `DEFAULT_USER_EMAIL`, `DEFAULT_USER_PASSWORD`, `AUTH_SECRET`, and `API_INGEST_KEY` in production.
+1. Create a **Postgres** database (Vercel Postgres, Neon, or Supabase).
+2. Set environment variable **`DATABASE_URL`** (with `?sslmode=require` for most hosts).
+3. Optional: `DEFAULT_USER_EMAIL`, `DEFAULT_USER_NAME`, `API_INGEST_KEY`.
+4. Deploy from `main` — build runs `prisma generate`, `prisma migrate deploy`, then `next build`.
+5. After first deploy, run `npm run db:seed` locally against production DB **or** import your CSV from the app.
 
 ## API (authenticated)
 

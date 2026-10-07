@@ -1,35 +1,11 @@
 import "dotenv/config";
-import { LeadSourceType } from "@prisma/client";
-import { hashPassword } from "../src/lib/auth/password";
 import { prisma } from "../src/lib/db";
+import { ensureDefaultUser } from "../src/lib/auth/default-user";
 
 async function main() {
-  const email = process.env.DEFAULT_USER_EMAIL ?? "you@example.com";
-  const password = process.env.DEFAULT_USER_PASSWORD ?? "changeme123";
+  const userId = await ensureDefaultUser();
 
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: {
-      email,
-      passwordHash: await hashPassword(password),
-      name: "Parthiban",
-    },
-  });
-
-  await prisma.leadTag.createMany({
-    data: [
-      "HOT",
-      "WEBSITE",
-      "CHENNAI",
-      "HIGH_VALUE",
-      "CLINIC",
-      "RESTAURANT",
-    ].map((name) => ({ userId: user.id, name })),
-    skipDuplicates: true,
-  });
-
-  const existing = await prisma.lead.count({ where: { userId: user.id } });
+  const existing = await prisma.lead.count({ where: { userId } });
   if (existing > 0) {
     console.log("Seed skipped — leads already exist");
     return;
@@ -51,7 +27,7 @@ async function main() {
       email: "hello@velvetinteriors.in",
       website: "https://velvetinteriors.in",
       status: "NEW" as const,
-      sourceType: LeadSourceType.GOOGLE_MAPS,
+      sourceType: "GOOGLE_MAPS" as const,
     },
     {
       businessName: "Spice Route Bistro",
@@ -64,7 +40,7 @@ async function main() {
       phone: "+91 90031 44556",
       website: "https://spiceroutebistro.com",
       status: "REVIEWED" as const,
-      sourceType: LeadSourceType.CSV_IMPORT,
+      sourceType: "CSV_IMPORT" as const,
     },
     {
       businessName: "SmileCare Dental Clinic",
@@ -77,14 +53,14 @@ async function main() {
       phone: "+91 94422 77889",
       email: "care@smilecareclinic.com",
       status: "CONTACTED" as const,
-      sourceType: LeadSourceType.LINKEDIN,
+      sourceType: "LINKEDIN" as const,
     },
   ];
 
   for (const s of samples) {
     await prisma.lead.create({
       data: {
-        userId: user.id,
+        userId,
         businessName: s.businessName,
         industry: s.industry,
         category: s.industry,
@@ -119,7 +95,7 @@ async function main() {
     });
   }
 
-  console.log(`Seeded user ${email} / ${password}`);
+  console.log("Seeded sample leads for default user");
 }
 
 main()

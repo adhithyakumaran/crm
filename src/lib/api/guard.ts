@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
 import { createHash } from "crypto";
+import { ensureDefaultUser } from "@/lib/auth/default-user";
+import { prisma } from "@/lib/db";
 
 const hits = new Map<string, { count: number; reset: number }>();
 
@@ -22,28 +22,31 @@ export async function requireUser(request: Request) {
     return { error: NextResponse.json({ error: "Too many requests" }, { status: 429 }) };
   }
 
-  const session = await getSessionFromRequest(request);
-  if (!session?.userId) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  try {
+    const userId = await ensureDefaultUser();
+    return { userId };
+  } catch {
+    return {
+      error: NextResponse.json(
+        { error: "Database unavailable. Set DATABASE_URL on the server." },
+        { status: 503 }
+      ),
+    };
   }
-  return { userId: session.userId };
 }
 
 export async function requireIngestKey(request: Request) {
   const key = request.headers.get("x-api-key");
   const expected = process.env.API_INGEST_KEY;
-  if (!expected || !key || key !== expected) {
-    return { error: NextResponse.json({ error: "Invalid API key" }, { status: 401 }) };
+  if (expected && key && key === expected) {
+    const userId = await ensureDefaultUser();
+    const hash = createHash("sha256").update(key).digest("hex");
+    await prisma.apiKey.upsert({
+      where: { keyHash: hash },
+      create: { userId, keyHash: hash, label: "ingest" },
+      update: { lastUsed: new Date() },
+    });
+    return { userId };
   }
-  const user = await prisma.user.findFirst({ select: { id: true } });
-  if (!user) {
-    return { error: NextResponse.json({ error: "No user configured" }, { status: 503 }) };
-  }
-  const hash = createHash("sha256").update(key).digest("hex");
-  await prisma.apiKey.upsert({
-    where: { keyHash: hash },
-    create: { userId: user.id, keyHash: hash, label: "ingest" },
-    update: { lastUsed: new Date() },
-  });
-  return { userId: user.id };
+  return requireUser(request);
 }

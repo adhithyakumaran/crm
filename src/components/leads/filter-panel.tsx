@@ -71,11 +71,16 @@ export function FilterPanel() {
     setOrDel("source", source);
     setOrDel("tag", tag);
     setOrDel("followUp", followUp);
-    hot ? p.set("hot", "1") : p.delete("hot");
-    hasEmail ? p.set("hasEmail", "1") : p.delete("hasEmail");
-    hasPhone ? p.set("hasPhone", "1") : p.delete("hasPhone");
-    hasWhatsApp ? p.set("hasWhatsApp", "1") : p.delete("hasWhatsApp");
-    hasWebsite ? p.set("hasWebsite", "1") : p.delete("hasWebsite");
+    if (hot) p.set("hot", "1");
+    else p.delete("hot");
+    if (hasEmail) p.set("hasEmail", "1");
+    else p.delete("hasEmail");
+    if (hasPhone) p.set("hasPhone", "1");
+    else p.delete("hasPhone");
+    if (hasWhatsApp) p.set("hasWhatsApp", "1");
+    else p.delete("hasWhatsApp");
+    if (hasWebsite) p.set("hasWebsite", "1");
+    else p.delete("hasWebsite");
     router.push(`/leads?${p.toString()}`);
     setOpen(false);
   }

@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
   Upload,
   KanbanSquare,
-  LogOut,
   Target,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -22,13 +20,6 @@ const nav = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
     <div className="flex min-h-screen bg-muted/30">
@@ -60,12 +51,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="border-t p-3">
-          <Button variant="ghost" className="w-full justify-start" onClick={logout}>
-            <LogOut className="size-4" />
-            Sign out
-          </Button>
-        </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b bg-card px-4 py-3 md:hidden">
