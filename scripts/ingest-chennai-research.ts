@@ -12,6 +12,10 @@ import {
   type IncomingLeadRow,
 } from "../src/lib/leads/upsert";
 import { prisma } from "../src/lib/db";
+import {
+  enrichBusinessOpportunityLead,
+  normalizeOpportunityType,
+} from "../src/lib/leads/intelligence";
 
 type RawLead = IncomingLeadRow & {
   sourceUrl?: string;
@@ -208,6 +212,45 @@ function scoreLead(lead: RawLead): RawLead {
   }
   lead.tier =
     score >= 80 ? "HOT" : score >= 70 ? "HIGH" : score >= 60 ? "MEDIUM" : "LOW";
+
+  if (lead.opportunityType) {
+    lead.opportunityType = normalizeOpportunityType(
+      String(lead.opportunityType)
+    );
+  }
+  if (!lead.leadIntelCategory) {
+    lead.leadIntelCategory = "BUSINESS_OPPORTUNITY";
+  }
+
+  const enriched = enrichBusinessOpportunityLead({
+    businessName: lead.businessName,
+    industry: lead.industry ?? lead.category,
+    website: lead.website,
+    websiteStatus: lead.websiteStatus,
+    detectedProblem: lead.detectedProblem,
+    city: lead.city,
+  });
+  lead.solutionNeeded = lead.solutionNeeded ?? enriched.solutionNeeded;
+  lead.suggestedSolution = lead.suggestedSolution ?? enriched.solutionNeeded;
+  lead.businessOpportunity =
+    lead.businessOpportunity ?? lead.suggestedService ?? enriched.businessOpportunity;
+  lead.suggestedService = lead.suggestedService ?? enriched.businessOpportunity;
+  lead.whyThisLead = lead.whyThisLead ?? enriched.whyThisLead;
+  lead.projectType = lead.projectType ?? enriched.projectType;
+  lead.buyingIntent = lead.buyingIntent ?? enriched.buyingIntent;
+
+  if (lead.sourceUrl) {
+    const evidence = Array.isArray(lead.evidence) ? [...lead.evidence] : [];
+    if (!evidence.some((e) => typeof e === "object" && e && "url" in e && (e as { url: string }).url === lead.sourceUrl)) {
+      evidence.push({
+        label: "Discovery source",
+        url: lead.sourceUrl,
+        type: lead.sourceType ?? "OTHER",
+      });
+    }
+    lead.evidence = evidence;
+  }
+
   return lead;
 }
 

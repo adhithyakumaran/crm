@@ -55,6 +55,16 @@ export function FilterPanel() {
   const [hasWhatsApp, setHasWhatsApp] = useState(params.get("hasWhatsApp") === "1");
   const [hasWebsite, setHasWebsite] = useState(params.get("hasWebsite") === "1");
   const [hot, setHot] = useState(params.get("hot") === "1");
+  const [leadIntelCategory, setLeadIntelCategory] = useState(
+    params.get("leadIntelCategory") ?? ""
+  );
+  const [intentTier, setIntentTier] = useState(params.get("intentTier") ?? "");
+  const [postedWithinDays, setPostedWithinDays] = useState(
+    params.get("postedWithinDays") ?? ""
+  );
+  const [opportunityType, setOpportunityType] = useState(
+    params.get("opportunityType") ?? ""
+  );
 
   function apply() {
     const p = new URLSearchParams(params.toString());
@@ -81,6 +91,10 @@ export function FilterPanel() {
     else p.delete("hasWhatsApp");
     if (hasWebsite) p.set("hasWebsite", "1");
     else p.delete("hasWebsite");
+    setOrDel("leadIntelCategory", leadIntelCategory);
+    setOrDel("intentTier", intentTier);
+    setOrDel("postedWithinDays", postedWithinDays);
+    setOrDel("opportunityType", opportunityType);
     router.push(`/leads?${p.toString()}`);
     setOpen(false);
   }
@@ -105,6 +119,10 @@ export function FilterPanel() {
     hasPhone,
     hasWhatsApp,
     hasWebsite,
+    leadIntelCategory,
+    intentTier,
+    postedWithinDays,
+    opportunityType,
   ].filter(Boolean).length;
 
   return (
@@ -167,6 +185,70 @@ export function FilterPanel() {
                 {SOURCES.map((s) => (
                   <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Lead type</Label>
+            <Select
+              value={leadIntelCategory || "_any"}
+              onValueChange={(v) => setLeadIntelCategory(v === "_any" ? "" : v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_any">Any</SelectItem>
+                <SelectItem value="ACTIVE_DEMAND">Active demand</SelectItem>
+                <SelectItem value="BUSINESS_OPPORTUNITY">Business opportunity</SelectItem>
+                <SelectItem value="BOTH">Both</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Intent tier</Label>
+            <Select value={intentTier || "_any"} onValueChange={(v) => setIntentTier(v === "_any" ? "" : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_any">Any</SelectItem>
+                <SelectItem value="immediate">Immediate demand (90+)</SelectItem>
+                <SelectItem value="active">Active demand (70–89)</SelectItem>
+                <SelectItem value="recent">Recent demand (50–69)</SelectItem>
+                <SelectItem value="low">Low intent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Posted within (days)</Label>
+            <Select
+              value={postedWithinDays || "_any"}
+              onValueChange={(v) => setPostedWithinDays(v === "_any" ? "" : v)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_any">Any</SelectItem>
+                <SelectItem value="1">Today</SelectItem>
+                <SelectItem value="3">Last 3 days</SelectItem>
+                <SelectItem value="7">Last 7 days</SelectItem>
+                <SelectItem value="14">Last 14 days</SelectItem>
+                <SelectItem value="30">Last 30 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Opportunity type</Label>
+            <Select
+              value={opportunityType || "_any"}
+              onValueChange={(v) => setOpportunityType(v === "_any" ? "" : v)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_any">Any</SelectItem>
+                <SelectItem value="WEBSITE">Website</SelectItem>
+                <SelectItem value="WEB_APPLICATION">Web app</SelectItem>
+                <SelectItem value="MOBILE_APPLICATION">Mobile app</SelectItem>
+                <SelectItem value="ECOMMERCE">E-commerce</SelectItem>
+                <SelectItem value="AUTOMATION">Automation</SelectItem>
+                <SelectItem value="CUSTOM_SOFTWARE">Custom software</SelectItem>
+                <SelectItem value="AI_SOLUTION">AI solution</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -60,6 +60,17 @@ async function main() {
         case "leadScore":
           row[field] = lead.leadScore ?? "";
           break;
+        case "intentScore":
+          row[field] = lead.intentScore ?? "";
+          break;
+        case "postedAt":
+          row[field] = lead.postedAt?.toISOString() ?? "";
+          break;
+        case "opportunityTypes":
+          row[field] = Array.isArray(lead.opportunityTypes)
+            ? (lead.opportunityTypes as string[]).join("|")
+            : "";
+          break;
         default:
           row[field] =
             (lead as Record<string, unknown>)[field]?.toString() ?? "";
@@ -79,8 +90,19 @@ async function main() {
   const outPath = path.join(outDir, "chennai-qualified-leads.xlsx");
   XLSX.writeFile(book, outPath);
 
+  const csvPath = path.join(outDir, "chennai-qualified-leads.csv");
+  XLSX.writeFile(
+    book,
+    csvPath,
+    { bookType: "csv" }
+  );
+
   console.log(
-    JSON.stringify({ exported: rows.length, path: outPath }, null, 2)
+    JSON.stringify(
+      { exported: rows.length, xlsx: outPath, csv: csvPath },
+      null,
+      2
+    )
   );
   await prisma.$disconnect();
 }

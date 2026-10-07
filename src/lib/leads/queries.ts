@@ -1,5 +1,12 @@
-import type { LeadSourceType, LeadStatus, Prisma } from "@prisma/client";
-import { startOfDay, endOfDay } from "date-fns";
+import type {
+  BuyingIntent,
+  LeadIntelCategory,
+  LeadSourceType,
+  LeadStatus,
+  OpportunityType,
+  Prisma,
+} from "@prisma/client";
+import { startOfDay, endOfDay, subDays } from "date-fns";
 
 export type LeadListFilters = {
   q?: string;
@@ -21,6 +28,12 @@ export type LeadListFilters = {
   tag?: string;
   archived?: boolean;
   ids?: string[];
+  leadIntelCategory?: LeadIntelCategory;
+  intentMin?: number;
+  intentTier?: "immediate" | "active" | "recent" | "low";
+  postedWithinDays?: number;
+  opportunityType?: OpportunityType;
+  buyingIntent?: BuyingIntent;
 };
 
 export function buildLeadWhere(
@@ -107,6 +120,36 @@ export function buildLeadWhere(
   }
 
   const now = new Date();
+  if (filters.leadIntelCategory) {
+    where.leadIntelCategory = filters.leadIntelCategory;
+  }
+
+  if (filters.intentMin != null) {
+    where.intentScore = { gte: filters.intentMin };
+  }
+
+  if (filters.intentTier === "immediate") {
+    where.intentScore = { gte: 90 };
+  } else if (filters.intentTier === "active") {
+    where.intentScore = { gte: 70, lte: 89 };
+  } else if (filters.intentTier === "recent") {
+    where.intentScore = { gte: 50, lte: 69 };
+  } else if (filters.intentTier === "low") {
+    where.intentScore = { lt: 50, gt: 0 };
+  }
+
+  if (filters.postedWithinDays != null) {
+    where.postedAt = { gte: subDays(now, filters.postedWithinDays) };
+  }
+
+  if (filters.opportunityType) {
+    where.opportunityType = filters.opportunityType;
+  }
+
+  if (filters.buyingIntent) {
+    where.buyingIntent = filters.buyingIntent;
+  }
+
   if (filters.followUp === "today") {
     where.nextFollowUpAt = { gte: startOfDay(now), lte: endOfDay(now) };
   } else if (filters.followUp === "overdue") {

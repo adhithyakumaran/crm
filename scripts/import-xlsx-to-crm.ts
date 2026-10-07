@@ -8,7 +8,13 @@ import path from "path";
 import { ensureDefaultUser } from "../src/lib/auth/default-user";
 import { parseWorkbookBuffer } from "../src/lib/import/parse";
 import { upsertLeadFromImport, type IncomingLeadRow } from "../src/lib/leads/upsert";
-import type { LeadSourceType, OpportunityType } from "@prisma/client";
+import type {
+  BuyingIntent,
+  LeadIntelCategory,
+  LeadSourceType,
+  OpportunityType,
+  ProjectType,
+} from "@prisma/client";
 import { prisma } from "../src/lib/db";
 
 function rowToIncoming(row: Record<string, string>): IncomingLeadRow | null {
@@ -31,9 +37,24 @@ function rowToIncoming(row: Record<string, string>): IncomingLeadRow | null {
     scoreReason: row.scoreReason || undefined,
     detectedProblem: row.detectedProblem || undefined,
     suggestedSolution: row.suggestedSolution || undefined,
+    solutionNeeded: row.solutionNeeded || undefined,
     suggestedService: row.suggestedService || undefined,
     suggestedPitch: row.suggestedPitch || undefined,
     opportunityType: (row.opportunityType as OpportunityType) || undefined,
+    businessOpportunity: row.businessOpportunity || undefined,
+    whyThisLead: row.whyThisLead || undefined,
+    leadIntelCategory:
+      (row.leadIntelCategory as LeadIntelCategory) || undefined,
+    buyingIntent: (row.buyingIntent as BuyingIntent) || undefined,
+    intentScore: row.intentScore ? Number(row.intentScore) : undefined,
+    projectType: (row.projectType as ProjectType) || undefined,
+    postedAt: row.postedAt || undefined,
+    postUrl: row.postUrl || undefined,
+    postPlatform: row.postPlatform || undefined,
+    postAuthor: row.postAuthor || undefined,
+    postAuthorRole: row.postAuthorRole || undefined,
+    postTextSummary: row.postTextSummary || undefined,
+    requirementSummary: row.requirementSummary || undefined,
     businessValue: row.businessValue || undefined,
     contactName: row.contactName || undefined,
     contactRole: row.contactRole || undefined,

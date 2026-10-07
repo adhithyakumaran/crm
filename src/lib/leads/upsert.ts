@@ -1,11 +1,15 @@
 import type {
+  BuyingIntent,
   FieldSource,
   Lead,
+  LeadIntelCategory,
   LeadSourceType,
   LeadStatus,
   OpportunityType,
   Prisma,
+  ProjectType,
 } from "@prisma/client";
+import { normalizeOpportunityType } from "@/lib/leads/intelligence";
 import { prisma } from "@/lib/db";
 import {
   canOverwriteField,
@@ -39,10 +43,25 @@ export type IncomingLeadRow = {
   scoreReason?: string | null;
   detectedProblem?: string | null;
   suggestedSolution?: string | null;
+  solutionNeeded?: string | null;
   suggestedService?: string | null;
   suggestedPitch?: string | null;
   opportunityType?: OpportunityType | null;
+  opportunityTypes?: string[] | null;
   businessValue?: string | null;
+  businessOpportunity?: string | null;
+  whyThisLead?: string | null;
+  leadIntelCategory?: LeadIntelCategory | null;
+  buyingIntent?: BuyingIntent | null;
+  intentScore?: number | null;
+  projectType?: ProjectType | null;
+  postedAt?: string | Date | null;
+  postUrl?: string | null;
+  postPlatform?: string | null;
+  postAuthor?: string | null;
+  postAuthorRole?: string | null;
+  postTextSummary?: string | null;
+  requirementSummary?: string | null;
   contactName?: string | null;
   contactRole?: string | null;
   phone?: string | null;
@@ -150,17 +169,41 @@ export async function upsertLeadFromImport(
         leadScore: row.leadScore ?? 0,
         scoreReason: row.scoreReason ?? undefined,
         detectedProblem: row.detectedProblem ?? undefined,
-        suggestedSolution: row.suggestedSolution ?? undefined,
+        suggestedSolution:
+          row.suggestedSolution ?? row.solutionNeeded ?? undefined,
+        solutionNeeded: row.solutionNeeded ?? row.suggestedSolution ?? undefined,
         suggestedService: row.suggestedService ?? undefined,
         suggestedPitch: row.suggestedPitch ?? undefined,
-        opportunityType: row.opportunityType ?? undefined,
+        opportunityType:
+          normalizeOpportunityType(row.opportunityType ?? undefined) ??
+          row.opportunityType ??
+          undefined,
+        opportunityTypes: row.opportunityTypes?.length
+          ? row.opportunityTypes
+          : undefined,
         businessValue: row.businessValue ?? undefined,
+        businessOpportunity: row.businessOpportunity ?? undefined,
+        whyThisLead: row.whyThisLead ?? undefined,
+        leadIntelCategory: row.leadIntelCategory ?? "BUSINESS_OPPORTUNITY",
+        buyingIntent: row.buyingIntent ?? "UNKNOWN",
+        intentScore: row.intentScore ?? 0,
+        projectType: row.projectType ?? undefined,
+        postedAt: row.postedAt ? new Date(row.postedAt) : undefined,
+        postUrl: row.postUrl ?? undefined,
+        postPlatform: row.postPlatform ?? undefined,
+        postAuthor: row.postAuthor ?? undefined,
+        postAuthorRole: row.postAuthorRole ?? undefined,
+        postTextSummary: row.postTextSummary ?? undefined,
+        requirementSummary: row.requirementSummary ?? undefined,
         digitalPresence: Object.keys(digitalPresence).length ? digitalPresence : undefined,
         social: Object.keys(social).length ? social : undefined,
         evidence: row.evidence ? (row.evidence as Prisma.InputJsonValue) : undefined,
         normalizedPhone: phone ?? undefined,
         normalizedEmail: email ?? undefined,
-        isHot: (row.leadScore ?? 0) >= 90,
+        isHot:
+          (row.intentScore ?? 0) >= 90 ||
+          (row.leadScore ?? 0) >= 90 ||
+          row.leadIntelCategory === "ACTIVE_DEMAND",
         fieldMeta: withFieldMeta(
           {},
           Object.fromEntries(
@@ -227,6 +270,15 @@ export async function upsertLeadFromImport(
     "suggestedService",
     "suggestedPitch",
     "businessValue",
+    "solutionNeeded",
+    "businessOpportunity",
+    "whyThisLead",
+    "postUrl",
+    "postPlatform",
+    "postAuthor",
+    "postAuthorRole",
+    "postTextSummary",
+    "requirementSummary",
   ];
 
   for (const field of scalarFields) {
@@ -270,8 +322,41 @@ export async function upsertLeadFromImport(
     data.evidence = row.evidence as Prisma.InputJsonValue;
   }
   if (row.opportunityType && canOverwriteField(meta, "opportunityType", source)) {
-    data.opportunityType = row.opportunityType;
+    data.opportunityType =
+      normalizeOpportunityType(row.opportunityType) ?? row.opportunityType;
     meta = withFieldMeta(meta, { opportunityType: source });
+  }
+  if (row.opportunityTypes?.length) {
+    data.opportunityTypes = row.opportunityTypes;
+  }
+  if (row.suggestedSolution && canOverwriteField(meta, "suggestedSolution", source)) {
+    data.suggestedSolution = row.suggestedSolution;
+  }
+  if (row.solutionNeeded && canOverwriteField(meta, "solutionNeeded", source)) {
+    data.solutionNeeded = row.solutionNeeded;
+  }
+  if (row.leadIntelCategory && canOverwriteField(meta, "leadIntelCategory", source)) {
+    data.leadIntelCategory = row.leadIntelCategory;
+  }
+  if (row.buyingIntent && canOverwriteField(meta, "buyingIntent", source)) {
+    data.buyingIntent = row.buyingIntent;
+  }
+  const intentMerged = mergeNumber(
+    "intentScore",
+    existing.intentScore,
+    row.intentScore,
+    meta,
+    source
+  );
+  meta = intentMerged.meta;
+  if (intentMerged.value !== existing.intentScore) {
+    data.intentScore = intentMerged.value;
+  }
+  if (row.projectType && canOverwriteField(meta, "projectType", source)) {
+    data.projectType = row.projectType;
+  }
+  if (row.postedAt) {
+    data.postedAt = new Date(row.postedAt);
   }
 
   data.fieldMeta = meta;

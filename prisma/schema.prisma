@@ -34,12 +34,53 @@ enum LeadSourceType {
 
 enum OpportunityType {
   WEBSITE
+  WEBSITE_REDESIGN
+  WEB_APPLICATION
+  MOBILE_APPLICATION
+  ECOMMERCE
+  BOOKING_SYSTEM
+  APPOINTMENT_SYSTEM
+  CRM
+  BUSINESS_DASHBOARD
+  INVENTORY_SYSTEM
+  ORDER_MANAGEMENT
+  CUSTOMER_PORTAL
+  AUTOMATION
+  CUSTOM_SOFTWARE
+  AI_SOLUTION
+  API_INTEGRATION
+  OTHER
   REDESIGN
   WEB_APP
   MOBILE_APP
-  AUTOMATION
+}
+
+enum LeadIntelCategory {
+  BUSINESS_OPPORTUNITY
+  ACTIVE_DEMAND
+  BOTH
+}
+
+enum BuyingIntent {
+  VERY_HIGH
+  HIGH
+  MEDIUM
+  LOW
+  UNKNOWN
+}
+
+enum ProjectType {
+  SMALL_WEBSITE
+  BUSINESS_WEBSITE
+  WEBSITE_REDESIGN
   ECOMMERCE
-  OTHER
+  SMALL_WEB_APP
+  BUSINESS_WEB_APP
+  MOBILE_APP
+  CUSTOM_SOFTWARE
+  AUTOMATION
+  ENTERPRISE_LITE
+  UNKNOWN
 }
 
 enum ContactChannel {
@@ -138,10 +179,27 @@ model Lead {
 
   detectedProblem   String? @db.Text
   suggestedSolution String? @db.Text
+  solutionNeeded    String? @db.Text
   suggestedService  String? @db.Text
   suggestedPitch    String? @db.Text
   opportunityType   OpportunityType?
+  opportunityTypes  Json?
   businessValue     String?
+  businessOpportunity String? @db.Text
+  whyThisLead       String? @db.Text
+
+  leadIntelCategory LeadIntelCategory? @default(BUSINESS_OPPORTUNITY)
+  buyingIntent      BuyingIntent?      @default(UNKNOWN)
+  intentScore       Int                @default(0)
+  projectType       ProjectType?
+
+  postedAt            DateTime?
+  postUrl             String?
+  postPlatform        String?
+  postAuthor          String?
+  postAuthorRole      String?
+  postTextSummary     String? @db.Text
+  requirementSummary  String? @db.Text
 
   digitalPresence Json?
   social          Json?
@@ -177,6 +235,9 @@ model Lead {
   @@index([userId, normalizedEmail])
   @@index([userId, businessName, city])
   @@index([userId, archived])
+  @@index([userId, leadIntelCategory])
+  @@index([userId, intentScore])
+  @@index([userId, postedAt])
 }
 
 model Contact {

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/api/guard";
 import { buildLeadWhere, type LeadListFilters } from "@/lib/leads/queries";
-import type { LeadStatus } from "@prisma/client";
+import type { LeadStatus, Prisma } from "@prisma/client";
 import { upsertLeadFromImport } from "@/lib/leads/upsert";
 
 function parseFilters(searchParams: URLSearchParams): LeadListFilters {
@@ -33,6 +33,20 @@ function parseFilters(searchParams: URLSearchParams): LeadListFilters {
     hasWhatsApp: searchParams.get("hasWhatsApp") === "1",
     tag: searchParams.get("tag") ?? undefined,
     archived: searchParams.get("archived") === "1",
+    leadIntelCategory:
+      (searchParams.get("leadIntelCategory") as LeadListFilters["leadIntelCategory"]) ??
+      undefined,
+    intentTier:
+      (searchParams.get("intentTier") as LeadListFilters["intentTier"]) ?? undefined,
+    postedWithinDays: searchParams.get("postedWithinDays")
+      ? Number(searchParams.get("postedWithinDays"))
+      : undefined,
+    opportunityType:
+      (searchParams.get("opportunityType") as LeadListFilters["opportunityType"]) ??
+      undefined,
+    buyingIntent:
+      (searchParams.get("buyingIntent") as LeadListFilters["buyingIntent"]) ??
+      undefined,
   };
 }
 
@@ -42,9 +56,17 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const filters = parseFilters(searchParams);
-  const sort = searchParams.get("sort") ?? "leadScore";
-  const order = searchParams.get("order") === "asc" ? "asc" : "desc";
+  const sort = searchParams.get("sort") ?? "intent";
+  const order: Prisma.SortOrder =
+    searchParams.get("order") === "asc" ? "asc" : "desc";
   const take = Math.min(Number(searchParams.get("limit") ?? 100), 500);
+
+  const orderBy: Prisma.LeadOrderByWithRelationInput[] =
+    sort === "intent"
+      ? [{ intentScore: order }, { leadScore: order }]
+      : sort === "postedAt"
+        ? [{ postedAt: order }, { intentScore: "desc" }]
+        : [{ [sort]: order } as Prisma.LeadOrderByWithRelationInput];
 
   const leads = await prisma.lead.findMany({
     where: buildLeadWhere(auth.userId, filters),
@@ -53,7 +75,7 @@ export async function GET(request: Request) {
       sources: { orderBy: { createdAt: "desc" }, take: 1 },
       tagRelations: { include: { tag: true } },
     },
-    orderBy: { [sort]: order },
+    orderBy,
     take,
   });
 
