@@ -188,7 +188,6 @@ function scoreLead(lead: RawLead): RawLead {
 
   score = Math.min(100, Math.max(0, score));
   lead.leadScore = score;
-  lead.isHot = score >= 80;
 
   if (!lead.detectedProblem) {
     lead.detectedProblem = reasons.slice(0, 3).join("; ") || "Visible room to improve digital lead capture";
